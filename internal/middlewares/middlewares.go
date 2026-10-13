@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gulmix/orders/internal/controllers/http/response"
-	"github.com/gulmix/orders/internal/requestid"
+	"github.com/Freazecake/orders/internal/controllers/http/response"
+	"github.com/Freazecake/orders/internal/requestid"
 )
 
 // RequestID берёт идентификатор из заголовка или генерирует новый и кладёт

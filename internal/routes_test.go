@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gulmix/orders/internal"
-	healthController "github.com/gulmix/orders/internal/controllers/http/health"
-	"github.com/gulmix/orders/internal/requestid"
+	"github.com/Freazecake/orders/internal"
+	healthController "github.com/Freazecake/orders/internal/controllers/http/health"
+	"github.com/Freazecake/orders/internal/requestid"
 )
 
 // Тест уровня маршрутов. Он ничего не проверяет из вашего задания — он

@@ -18,3 +18,5 @@ coverage.html
 .idea/
 .vscode/
 .DS_Store
+
+tasks/

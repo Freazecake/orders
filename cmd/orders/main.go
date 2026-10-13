@@ -9,10 +9,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/gulmix/orders/internal"
-	"github.com/gulmix/orders/internal/config"
-	healthController "github.com/gulmix/orders/internal/controllers/http/health"
-	httpServer "github.com/gulmix/orders/internal/servers/http"
+	"github.com/Freazecake/orders/internal"
+	"github.com/Freazecake/orders/internal/config"
+	healthController "github.com/Freazecake/orders/internal/controllers/http/health"
+	httpServer "github.com/Freazecake/orders/internal/servers/http"
 )
 
 func main() {

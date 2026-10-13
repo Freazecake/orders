@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/gulmix/orders/internal/requestid"
+	"github.com/Freazecake/orders/internal/requestid"
 )
 
 // Единый формат ошибки для всего API — часть контракта, менять его нельзя.

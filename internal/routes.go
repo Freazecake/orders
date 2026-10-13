@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	healthController "github.com/gulmix/orders/internal/controllers/http/health"
-	"github.com/gulmix/orders/internal/middlewares"
+	healthController "github.com/Freazecake/orders/internal/controllers/http/health"
+	"github.com/Freazecake/orders/internal/middlewares"
 )
 
 // InitRoutes собирает маршруты и оборачивает их общей обвязкой.
