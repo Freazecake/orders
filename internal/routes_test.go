@@ -10,7 +10,10 @@ import (
 
 	"github.com/Freazecake/orders/internal"
 	healthController "github.com/Freazecake/orders/internal/controllers/http/health"
+	orderController "github.com/Freazecake/orders/internal/controllers/http/order"
+	repo "github.com/Freazecake/orders/internal/repositories/order"
 	"github.com/Freazecake/orders/internal/requestid"
+	service "github.com/Freazecake/orders/internal/services/order"
 )
 
 // Тест уровня маршрутов. Он ничего не проверяет из вашего задания — он
@@ -21,7 +24,9 @@ import (
 // Тесты на заказы пишете вы. Ориентир по объёму — в задании модуля.
 func TestHealth(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := internal.InitRoutes(logger, healthController.NewController())
+	repo := repo.New()
+	svc := service.New(repo)
+	srv := internal.InitRoutes(logger, healthController.NewController(), orderController.NewController(svc))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

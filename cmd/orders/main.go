@@ -12,7 +12,10 @@ import (
 	"github.com/Freazecake/orders/internal"
 	"github.com/Freazecake/orders/internal/config"
 	healthController "github.com/Freazecake/orders/internal/controllers/http/health"
+	orderController "github.com/Freazecake/orders/internal/controllers/http/order"
+	repo "github.com/Freazecake/orders/internal/repositories/order"
 	httpServer "github.com/Freazecake/orders/internal/servers/http"
+	service "github.com/Freazecake/orders/internal/services/order"
 )
 
 func main() {
@@ -36,9 +39,14 @@ func run() error {
 	// Composition root: зависимости создаются здесь и передаются явно, снизу
 	// вверх — хранилище в сервис, сервис в контроллер, контроллер в маршруты.
 	// Никаких глобальных переменных и пакетов-синглтонов.
-	health := healthController.NewController()
+	repo := repo.New()
 
-	srv := httpServer.NewServer(cfg.HTTPAddr, internal.InitRoutes(logger, health), logger, cfg.ShutdownTimeout)
+	svc := service.New(repo)
+
+	health := healthController.NewController()
+	order := orderController.NewController(svc)
+
+	srv := httpServer.NewServer(cfg.HTTPAddr, internal.InitRoutes(logger, health, order), logger, cfg.ShutdownTimeout)
 
 	return srv.Run()
 }
