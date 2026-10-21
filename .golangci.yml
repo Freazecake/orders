@@ -38,7 +38,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/gulmix/orders
+        - github.com/Freazecake/orders
 
 issues:
   max-issues-per-linter: 0

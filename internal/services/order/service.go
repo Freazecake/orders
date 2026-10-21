@@ -53,7 +53,7 @@ func (svc *Service) Create(ctx context.Context, customerID string, items_r []dom
 		Status:     domain.StatusCreated,
 		Items:      items,
 		TotalCents: total,
-		CreatedAt:  time.Now(),
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	if err := svc.repo.Save(ctx, o); err != nil {

@@ -9,9 +9,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/Freazecake/orders/internal/controllers/http/response"
 	domain "github.com/Freazecake/orders/internal/models/order"
-	"github.com/google/uuid"
 )
 
 type Service interface {
@@ -30,17 +31,18 @@ func NewController(svc Service) *Controller {
 func (c *Controller) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var req domain.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, "invalid json")
+		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, err.Error())
 		return
 	}
 
 	ctx := r.Context()
 	o, err := c.svc.Create(ctx, *req.CustomerID, req.Items)
 	if err != nil {
-		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, "failed to create")
+		response.Error(w, r, http.StatusUnprocessableEntity, response.CodeValidation, err.Error())
 		return
 	}
 
+	w.Header().Set("Location", "/orders/"+o.ID.String())
 	response.JSON(w, r, http.StatusCreated, o)
 }
 
@@ -48,14 +50,14 @@ func (c *Controller) GetByID(w http.ResponseWriter, r *http.Request) {
 	id_s := r.PathValue("id")
 	id, err := uuid.Parse(id_s)
 	if err != nil {
-		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, "invalid endpoint")
+		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, err.Error())
 		return
 	}
 
 	ctx := r.Context()
 	o, err := c.svc.GetByID(ctx, id)
 	if err != nil {
-		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, "failed to find")
+		response.Error(w, r, http.StatusNotFound, response.CodeNotFound, err.Error())
 		return
 	}
 
