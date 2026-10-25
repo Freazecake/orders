@@ -16,7 +16,7 @@ import (
 )
 
 type Service interface {
-	Create(ctx context.Context, customerID string, items []domain.ItemRequest) (domain.Order, error)
+	Create(ctx context.Context, customerID *string, items []domain.ItemRequest) (domain.Order, error)
 	GetByID(ctx context.Context, id uuid.UUID) (domain.Order, error)
 }
 
@@ -36,7 +36,7 @@ func (c *Controller) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	o, err := c.svc.Create(ctx, *req.CustomerID, req.Items)
+	o, err := c.svc.Create(ctx, req.CustomerID, req.Items)
 	if err != nil {
 		response.Error(w, r, http.StatusUnprocessableEntity, response.CodeValidation, err.Error())
 		return

@@ -27,8 +27,11 @@ func New(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (svc *Service) Create(ctx context.Context, customerID string, items_r []domain.ItemRequest) (domain.Order, error) {
-	if customerID == "" {
+func (svc *Service) Create(ctx context.Context, customerID *string, items_r []domain.ItemRequest) (domain.Order, error) {
+	if customerID == nil {
+		return domain.Order{}, domain.ErrInvalidOrder
+	}
+	if *customerID == "" {
 		return domain.Order{}, domain.ErrInvalidOrder
 	}
 
@@ -49,7 +52,7 @@ func (svc *Service) Create(ctx context.Context, customerID string, items_r []dom
 
 	o := domain.Order{
 		ID:         ID,
-		CustomerID: customerID,
+		CustomerID: *customerID,
 		Status:     domain.StatusCreated,
 		Items:      items,
 		TotalCents: total,
