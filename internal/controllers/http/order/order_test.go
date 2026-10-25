@@ -19,14 +19,14 @@ import (
 
 // fakeService — ручная заглушка Service.
 type fakeService struct {
-	createFn func(ctx context.Context, customerID string, items []domain.ItemRequest) (domain.Order, error)
+	createFn func(ctx context.Context, customerID *string, items []domain.ItemRequest) (domain.Order, error)
 	getFn    func(ctx context.Context, id uuid.UUID) (domain.Order, error)
 
 	createCalls int
 	getCalls    int
 }
 
-func (f *fakeService) Create(ctx context.Context, customerID string, items []domain.ItemRequest) (domain.Order, error) {
+func (f *fakeService) Create(ctx context.Context, customerID *string, items []domain.ItemRequest) (domain.Order, error) {
 	f.createCalls++
 	return f.createFn(ctx, customerID, items)
 }
@@ -97,11 +97,11 @@ func TestCreateOrder_Success(t *testing.T) {
 	want := sampleOrder()
 
 	var (
-		gotCustomer string
+		gotCustomer *string
 		gotItems    []domain.ItemRequest
 	)
 	svc := &fakeService{
-		createFn: func(_ context.Context, customerID string, items []domain.ItemRequest) (domain.Order, error) {
+		createFn: func(_ context.Context, customerID *string, items []domain.ItemRequest) (domain.Order, error) {
 			gotCustomer, gotItems = customerID, items
 			return want, nil
 		},
@@ -121,8 +121,10 @@ func TestCreateOrder_Success(t *testing.T) {
 	}
 
 	// В сервис ушли разобранные данные запроса.
-	if gotCustomer != "c-1" {
-		t.Errorf("customerID в сервисе = %q, ожидали %q", gotCustomer, "c-1")
+	if gotCustomer == nil {
+		t.Error("customerID в сервисе = nil, ожидали указатель на \"c-1\"")
+	} else if *gotCustomer != "c-1" {
+		t.Errorf("customerID в сервисе = %q, ожидали %q", *gotCustomer, "c-1")
 	}
 	if len(gotItems) != 1 ||
 		gotItems[0].SKU == nil || *gotItems[0].SKU != "A" ||
@@ -149,7 +151,7 @@ func TestCreateOrder_PassesRequestContext(t *testing.T) {
 	type ctxKey struct{}
 	var seen any
 	svc := &fakeService{
-		createFn: func(ctx context.Context, _ string, _ []domain.ItemRequest) (domain.Order, error) {
+		createFn: func(ctx context.Context, _ *string, _ []domain.ItemRequest) (domain.Order, error) {
 			seen = ctx.Value(ctxKey{})
 			return sampleOrder(), nil
 		},
@@ -205,8 +207,10 @@ func TestCreateOrder_InvalidJSON(t *testing.T) {
 	}
 }
 
-// customer_id — указатель: если поля нет в JSON, он nil. Хендлер не должен падать
-// с паникой, а должен ответить клиентской ошибкой (4xx) в едином формате.
+// customer_id — указатель: если поля нет в JSON (или оно null), он nil.
+// Контроллер сам его не разыменовывает: nil уходит в сервис как есть, а решение
+// «это невалидный заказ» принимает сервис (ErrInvalidOrder → 422 в едином формате).
+// Главное — хендлер не должен падать с паникой.
 func TestCreateOrder_MissingCustomerID(t *testing.T) {
 	t.Parallel()
 
@@ -223,8 +227,10 @@ func TestCreateOrder_MissingCustomerID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			var gotCustomer *string
 			svc := &fakeService{
-				createFn: func(context.Context, string, []domain.ItemRequest) (domain.Order, error) {
+				createFn: func(_ context.Context, customerID *string, _ []domain.ItemRequest) (domain.Order, error) {
+					gotCustomer = customerID
 					return domain.Order{}, domain.ErrInvalidOrder
 				},
 			}
@@ -239,10 +245,47 @@ func TestCreateOrder_MissingCustomerID(t *testing.T) {
 				NewController(svc).CreateOrder(rec, newCreateRequest(tt.body))
 			}()
 
-			if rec.Code < 400 || rec.Code >= 500 {
-				t.Errorf("статус = %d, ожидали клиентскую ошибку 4xx", rec.Code)
+			if svc.createCalls != 1 {
+				t.Fatalf("сервис вызван %d раз, ожидали 1: проверку customer_id делает сервис", svc.createCalls)
+			}
+			if gotCustomer != nil {
+				t.Errorf("в сервис ушёл customerID = %q, ожидали nil", *gotCustomer)
+			}
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Errorf("статус = %d, ожидали %d", rec.Code, http.StatusUnprocessableEntity)
+			}
+			assertJSONContentType(t, rec)
+			if env := decodeError(t, rec); env.Error.Code != response.CodeValidation {
+				t.Errorf("code = %q, ожидали %q", env.Error.Code, response.CodeValidation)
 			}
 		})
+	}
+}
+
+// Пустая строка — не то же самое, что отсутствие поля: в сервис уходит
+// указатель на "", а не nil (отличать их — задача сервиса).
+func TestCreateOrder_EmptyCustomerIDIsForwarded(t *testing.T) {
+	t.Parallel()
+
+	var gotCustomer *string
+	svc := &fakeService{
+		createFn: func(_ context.Context, customerID *string, _ []domain.ItemRequest) (domain.Order, error) {
+			gotCustomer = customerID
+			return domain.Order{}, domain.ErrInvalidOrder
+		},
+	}
+
+	rec := httptest.NewRecorder()
+	NewController(svc).CreateOrder(rec, newCreateRequest(`{"customer_id":"","items":[]}`))
+
+	if gotCustomer == nil {
+		t.Fatal("customerID в сервисе = nil, ожидали указатель на пустую строку")
+	}
+	if *gotCustomer != "" {
+		t.Errorf("customerID в сервисе = %q, ожидали пустую строку", *gotCustomer)
+	}
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("статус = %d, ожидали %d", rec.Code, http.StatusUnprocessableEntity)
 	}
 }
 
@@ -250,7 +293,7 @@ func TestCreateOrder_ServiceValidationError(t *testing.T) {
 	t.Parallel()
 
 	svc := &fakeService{
-		createFn: func(context.Context, string, []domain.ItemRequest) (domain.Order, error) {
+		createFn: func(context.Context, *string, []domain.ItemRequest) (domain.Order, error) {
 			return domain.Order{}, domain.ErrInvalidOrder
 		},
 	}
@@ -282,7 +325,7 @@ func TestCreateOrder_UnexpectedErrorIsInternal(t *testing.T) {
 
 	secret := "connection to db-host:5432 refused"
 	svc := &fakeService{
-		createFn: func(context.Context, string, []domain.ItemRequest) (domain.Order, error) {
+		createFn: func(context.Context, *string, []domain.ItemRequest) (domain.Order, error) {
 			return domain.Order{}, errors.New(secret)
 		},
 	}

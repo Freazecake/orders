@@ -158,7 +158,7 @@ func TestCreate_Success(t *testing.T) {
 	svc := New(repo)
 
 	before := time.Now().UTC().Add(-time.Second)
-	o, err := svc.Create(context.Background(), "c-1", []domain.ItemRequest{
+	o, err := svc.Create(context.Background(), ptr("c-1"), []domain.ItemRequest{
 		item("A", 2, 150),
 		item("B", 1, 99),
 	})
@@ -202,7 +202,7 @@ func TestCreate_Success(t *testing.T) {
 func TestCreate_IDIsUUIDv7(t *testing.T) {
 	t.Parallel()
 
-	o, err := New(&fakeRepo{}).Create(context.Background(), "c-1", []domain.ItemRequest{item("A", 1, 1)})
+	o, err := New(&fakeRepo{}).Create(context.Background(), ptr("c-1"), []domain.ItemRequest{item("A", 1, 1)})
 	if err != nil {
 		t.Fatalf("неожиданная ошибка: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestCreate_UniqueIDs(t *testing.T) {
 	svc := New(&fakeRepo{})
 	seen := make(map[uuid.UUID]struct{})
 	for i := 0; i < 100; i++ {
-		o, err := svc.Create(context.Background(), "c-1", []domain.ItemRequest{item("A", 1, 1)})
+		o, err := svc.Create(context.Background(), ptr("c-1"), []domain.ItemRequest{item("A", 1, 1)})
 		if err != nil {
 			t.Fatalf("неожиданная ошибка: %v", err)
 		}
@@ -247,7 +247,7 @@ func TestCreate_TotalCalculation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			o, err := New(&fakeRepo{}).Create(context.Background(), "c-1", tt.items)
+			o, err := New(&fakeRepo{}).Create(context.Background(), ptr("c-1"), tt.items)
 			if err != nil {
 				t.Fatalf("неожиданная ошибка: %v", err)
 			}
@@ -263,13 +263,14 @@ func TestCreate_InvalidInput(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		customerID string
+		customerID *string
 		items      []domain.ItemRequest
 	}{
-		{name: "пустой customerID", customerID: "", items: []domain.ItemRequest{item("A", 1, 1)}},
-		{name: "невалидная позиция: qty=0", customerID: "c-1", items: []domain.ItemRequest{item("A", 0, 1)}},
-		{name: "невалидная позиция: цена < 0", customerID: "c-1", items: []domain.ItemRequest{item("A", 1, -5)}},
-		{name: "невалидная позиция: нет полей", customerID: "c-1", items: []domain.ItemRequest{{}}},
+		{name: "customerID не передан (nil)", customerID: nil, items: []domain.ItemRequest{item("A", 1, 1)}},
+		{name: "пустой customerID", customerID: ptr(""), items: []domain.ItemRequest{item("A", 1, 1)}},
+		{name: "невалидная позиция: qty=0", customerID: ptr("c-1"), items: []domain.ItemRequest{item("A", 0, 1)}},
+		{name: "невалидная позиция: цена < 0", customerID: ptr("c-1"), items: []domain.ItemRequest{item("A", 1, -5)}},
+		{name: "невалидная позиция: нет полей", customerID: ptr("c-1"), items: []domain.ItemRequest{{}}},
 	}
 
 	for _, tt := range tests {
@@ -298,7 +299,7 @@ func TestCreate_RepoError(t *testing.T) {
 	repoErr := errors.New("диск переполнен")
 	repo := &fakeRepo{saveFn: func(context.Context, domain.Order) error { return repoErr }}
 
-	o, err := New(repo).Create(context.Background(), "c-1", []domain.ItemRequest{item("A", 1, 1)})
+	o, err := New(repo).Create(context.Background(), ptr("c-1"), []domain.ItemRequest{item("A", 1, 1)})
 
 	if !errors.Is(err, repoErr) {
 		t.Errorf("ошибка = %v, ожидали %v", err, repoErr)
@@ -319,7 +320,7 @@ func TestCreate_PassesContextToRepo(t *testing.T) {
 	}}
 
 	ctx := context.WithValue(context.Background(), ctxKey{}, "marker")
-	if _, err := New(repo).Create(ctx, "c-1", []domain.ItemRequest{item("A", 1, 1)}); err != nil {
+	if _, err := New(repo).Create(ctx, ptr("c-1"), []domain.ItemRequest{item("A", 1, 1)}); err != nil {
 		t.Fatalf("неожиданная ошибка: %v", err)
 	}
 	if seen != "marker" {

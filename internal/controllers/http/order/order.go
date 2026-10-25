@@ -7,6 +7,8 @@ package order
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -24,6 +26,8 @@ type Controller struct {
 	svc Service
 }
 
+var ErrBadRequest = errors.New("bad request")
+
 func NewController(svc Service) *Controller {
 	return &Controller{svc: svc}
 }
@@ -38,7 +42,7 @@ func (c *Controller) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	o, err := c.svc.Create(ctx, req.CustomerID, req.Items)
 	if err != nil {
-		response.Error(w, r, http.StatusUnprocessableEntity, response.CodeValidation, err.Error())
+		writeDomainError(w, r, err)
 		return
 	}
 
@@ -57,9 +61,23 @@ func (c *Controller) GetByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	o, err := c.svc.GetByID(ctx, id)
 	if err != nil {
-		response.Error(w, r, http.StatusNotFound, response.CodeNotFound, err.Error())
+		writeDomainError(w, r, err)
 		return
 	}
 
 	response.JSON(w, r, http.StatusOK, o)
+}
+
+func writeDomainError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	// case errors.Is(err, ErrBadRequest):
+	// 	response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, ErrBadRequest.Error())
+	case errors.Is(err, domain.ErrNotFound):
+		response.Error(w, r, http.StatusNotFound, response.CodeNotFound, domain.ErrNotFound.Error())
+	case errors.Is(err, domain.ErrInvalidOrder):
+		response.Error(w, r, http.StatusUnprocessableEntity, response.CodeValidation, domain.ErrInvalidOrder.Error())
+	default:
+		slog.ErrorContext(r.Context(), "необработанная ошибка", slog.Any("error", err))
+		response.Error(w, r, http.StatusInternalServerError, response.CodeInternal, "внутренняя ошибка сервиса")
+	}
 }
