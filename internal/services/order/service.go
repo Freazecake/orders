@@ -27,7 +27,7 @@ func New(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (svc *Service) Create(ctx context.Context, customerID *string, items_r []domain.ItemRequest) (domain.Order, error) {
+func (svc *Service) Create(ctx context.Context, customerID *string, itemsReq []domain.ItemRequest) (domain.Order, error) {
 	if customerID == nil {
 		return domain.Order{}, domain.ErrInvalidOrder
 	}
@@ -35,14 +35,14 @@ func (svc *Service) Create(ctx context.Context, customerID *string, items_r []do
 		return domain.Order{}, domain.ErrInvalidOrder
 	}
 
-	items, err := Validate(items_r)
+	items, err := Validate(itemsReq)
 	if err != nil {
 		return domain.Order{}, err
 	}
 
 	var total int
 	for i := range items {
-		total += items[i].PriceCents * items[i].QTY
+		total += items[i].PriceCents * items[i].Qty
 	}
 
 	ID, err := uuid.NewV7()
@@ -83,7 +83,7 @@ func Validate(items_r []domain.ItemRequest) ([]domain.Item, error) {
 		it := domain.Item{
 			PriceCents: *item.PriceCents,
 			SKU:        *item.SKU,
-			QTY:        *item.Qty}
+			Qty:        *item.Qty}
 
 		items = append(items, it)
 	}

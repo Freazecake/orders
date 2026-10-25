@@ -18,7 +18,7 @@ func newOrder(customer string) domain.Order {
 		ID:         uuid.New(),
 		CustomerID: customer,
 		Status:     domain.StatusCreated,
-		Items:      []domain.Item{{SKU: "A", QTY: 2, PriceCents: 150}},
+		Items:      []domain.Item{{SKU: "A", Qty: 2, PriceCents: 150}},
 		TotalCents: 300,
 		CreatedAt:  time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
 	}

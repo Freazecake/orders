@@ -57,22 +57,22 @@ func TestValidate(t *testing.T) {
 		{
 			name: "одна позиция",
 			in:   []domain.ItemRequest{item("A", 2, 150)},
-			want: []domain.Item{{SKU: "A", QTY: 2, PriceCents: 150}},
+			want: []domain.Item{{SKU: "A", Qty: 2, PriceCents: 150}},
 		},
 		{
 			name: "несколько позиций сохраняют порядок",
 			in:   []domain.ItemRequest{item("A", 1, 10), item("B", 3, 20), item("C", 5, 30)},
-			want: []domain.Item{{SKU: "A", QTY: 1, PriceCents: 10}, {SKU: "B", QTY: 3, PriceCents: 20}, {SKU: "C", QTY: 5, PriceCents: 30}},
+			want: []domain.Item{{SKU: "A", Qty: 1, PriceCents: 10}, {SKU: "B", Qty: 3, PriceCents: 20}, {SKU: "C", Qty: 5, PriceCents: 30}},
 		},
 		{
 			name: "нулевая цена допустима",
 			in:   []domain.ItemRequest{item("FREE", 1, 0)},
-			want: []domain.Item{{SKU: "FREE", QTY: 1, PriceCents: 0}},
+			want: []domain.Item{{SKU: "FREE", Qty: 1, PriceCents: 0}},
 		},
 		{
 			name: "пустой sku допустим (проверяется только наличие поля)",
 			in:   []domain.ItemRequest{item("", 1, 1)},
-			want: []domain.Item{{SKU: "", QTY: 1, PriceCents: 1}},
+			want: []domain.Item{{SKU: "", Qty: 1, PriceCents: 1}},
 		},
 		{
 			name: "пустой список",
@@ -179,7 +179,7 @@ func TestCreate_Success(t *testing.T) {
 	if want := 2*150 + 1*99; o.TotalCents != want {
 		t.Errorf("TotalCents = %d, ожидали %d", o.TotalCents, want)
 	}
-	wantItems := []domain.Item{{SKU: "A", QTY: 2, PriceCents: 150}, {SKU: "B", QTY: 1, PriceCents: 99}}
+	wantItems := []domain.Item{{SKU: "A", Qty: 2, PriceCents: 150}, {SKU: "B", Qty: 1, PriceCents: 99}}
 	if !reflect.DeepEqual(o.Items, wantItems) {
 		t.Errorf("Items = %+v, ожидали %+v", o.Items, wantItems)
 	}
@@ -268,7 +268,7 @@ func TestCreate_InvalidInput(t *testing.T) {
 	}{
 		{name: "customerID не передан (nil)", customerID: nil, items: []domain.ItemRequest{item("A", 1, 1)}},
 		{name: "пустой customerID", customerID: ptr(""), items: []domain.ItemRequest{item("A", 1, 1)}},
-		{name: "невалидная позиция: qty=0", customerID: ptr("c-1"), items: []domain.ItemRequest{item("A", 0, 1)}},
+		{name: "невалидная позиция: Qty=0", customerID: ptr("c-1"), items: []domain.ItemRequest{item("A", 0, 1)}},
 		{name: "невалидная позиция: цена < 0", customerID: ptr("c-1"), items: []domain.ItemRequest{item("A", 1, -5)}},
 		{name: "невалидная позиция: нет полей", customerID: ptr("c-1"), items: []domain.ItemRequest{{}}},
 	}

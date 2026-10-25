@@ -49,7 +49,7 @@ func sampleOrder() domain.Order {
 		ID:         uuid.MustParse("0190a5c0-1111-7222-8333-444455556666"),
 		CustomerID: "c-1",
 		Status:     domain.StatusCreated,
-		Items:      []domain.Item{{SKU: "A", QTY: 2, PriceCents: 150}},
+		Items:      []domain.Item{{SKU: "A", Qty: 2, PriceCents: 150}},
 		TotalCents: 300,
 		CreatedAt:  time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
 	}

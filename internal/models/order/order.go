@@ -23,7 +23,7 @@ type Order struct {
 
 type Item struct {
 	SKU        string `json:"sku"`
-	QTY        int    `json:"qty"`
+	Qty        int    `json:"qty"`
 	PriceCents int    `json:"price_cents"`
 }
 
