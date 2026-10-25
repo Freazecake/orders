@@ -3,3 +3,77 @@
 //
 // Единый формат ответа и коды ошибок — в соседнем пакете response.
 package order
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+
+	"github.com/google/uuid"
+
+	"github.com/Freazecake/orders/internal/controllers/http/response"
+	domain "github.com/Freazecake/orders/internal/models/order"
+)
+
+type Service interface {
+	Create(ctx context.Context, customerID *string, items []domain.ItemRequest) (domain.Order, error)
+	GetByID(ctx context.Context, id uuid.UUID) (domain.Order, error)
+}
+
+type Controller struct {
+	svc Service
+}
+
+func NewController(svc Service) *Controller {
+	return &Controller{svc: svc}
+}
+
+func (c *Controller) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	var req domain.CreateOrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, err.Error())
+		return
+	}
+
+	ctx := r.Context()
+	o, err := c.svc.Create(ctx, req.CustomerID, req.Items)
+	if err != nil {
+		writeDomainError(w, r, err)
+		return
+	}
+
+	w.Header().Set("Location", "/orders/"+o.ID.String())
+	response.JSON(w, r, http.StatusCreated, o)
+}
+
+func (c *Controller) GetByID(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.Error(w, r, http.StatusBadRequest, response.CodeBadRequest, err.Error())
+		return
+	}
+
+	ctx := r.Context()
+	o, err := c.svc.GetByID(ctx, id)
+	if err != nil {
+		writeDomainError(w, r, err)
+		return
+	}
+
+	response.JSON(w, r, http.StatusOK, o)
+}
+
+func writeDomainError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		response.Error(w, r, http.StatusNotFound, response.CodeNotFound, domain.ErrNotFound.Error())
+	case errors.Is(err, domain.ErrInvalidOrder):
+		response.Error(w, r, http.StatusUnprocessableEntity, response.CodeValidation, domain.ErrInvalidOrder.Error())
+	default:
+		slog.ErrorContext(r.Context(), "unhandled error", slog.Any("error", err))
+		response.Error(w, r, http.StatusInternalServerError, response.CodeInternal, "internal server error")
+	}
+}

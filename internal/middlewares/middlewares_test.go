@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gulmix/orders/internal/middlewares"
+	"github.com/Freazecake/orders/internal/middlewares"
 )
 
 // chain повторяет порядок обёрток из InitRoutes: тесты ниже проверяют

@@ -5,7 +5,7 @@ package health
 import (
 	"net/http"
 
-	"github.com/gulmix/orders/internal/controllers/http/response"
+	"github.com/Freazecake/orders/internal/controllers/http/response"
 )
 
 // Controller держит зависимости хендлеров пробы. Их пока нет.
